@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: narsampet360-api
+    runtime: node
+    plan: free
+    buildCommand: unzip -oq narsampet360-deploy-source.zip && cd apps/api && npm ci && npx prisma generate && npm run build
+    startCommand: cd apps/api && npx prisma migrate deploy && npm run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: narsampet360-demo-db
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: MSG91_AUTH_KEY
+        sync: false
+      - key: MSG91_OTP_TEMPLATE_ID
+        sync: false
+
+  - type: web
+    name: narsampet360-admin-web
+    runtime: static
+    buildCommand: unzip -oq narsampet360-deploy-source.zip && cd apps/admin-web && npm ci && npm run build
+    staticPublishPath: ./apps/admin-web/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: narsampet360-demo-db
+    databaseName: narsampet360
+    user: narsampet360
+    plan: free
